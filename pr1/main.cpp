@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdlib>
 #include <cstdio>
 #include <queue>
@@ -77,12 +78,14 @@ void bfs(const TestData &test) {
         for (now = now; now < end; now++) {
             RunState *st = state[now];
             if (st->x == test.x && st->y == test.y) break;
-            const int x = st->x, y = st->y;
-            state.push_back(new RunState(x+step, y, st)); // (x+)
-            state.push_back(new RunState(x, y+step, st)); // (y+)
-            state.push_back(new RunState(x-step, y, st)); // (x-)
-            state.push_back(new RunState(x, y-step, st)); // (y-)
-            state.push_back(new RunState(x, y, st)); // (S)
+            if (i < n) {
+                const int x = st->x, y = st->y;
+                state.push_back(new RunState(x+step, y, st)); // (x+)
+                state.push_back(new RunState(x, y+step, st)); // (y+)
+                state.push_back(new RunState(x-step, y, st)); // (x-)
+                state.push_back(new RunState(x, y-step, st)); // (y-)
+                state.push_back(new RunState(x, y, st)); // (S)
+            }
         }
         if (now < end) break;
     }
@@ -93,12 +96,15 @@ void bfs(const TestData &test) {
     else {
         std::cout << "No solution" << std::endl;
     }
+    std::cout << "Reached node count: " << state.size() << std::endl;
     for (RunState *i : state) { // clean up
         delete i;
     }
 }
 
+static int idsReachedCount;
 static RunState *idsHelper(const TestData &test, int depth, int x, int y, int i) {
+    idsReachedCount++;
     if (depth == i) { // maximum depth reached
         if (x == test.x && y == test.y) { // get target
             return new RunState(x,y,NULL);
@@ -118,6 +124,7 @@ static RunState *idsHelper(const TestData &test, int depth, int x, int y, int i)
 
 void ids(const TestData &test) {
     test.show();
+    idsReachedCount = 0;
     const int n = test.steps.size();
     int i;
     RunState *s = NULL;
@@ -132,6 +139,7 @@ void ids(const TestData &test) {
     else {
         std::cout << "No solution" << std::endl;
     }
+    std::cout << "Reached node count: " << idsReachedCount << std::endl;
     while (s != NULL) { // cleanup
         RunState *p = s;
         s = s->parent;
@@ -167,6 +175,8 @@ int main(int argc, char *argv[]) {
             test.steps.push_back(n);
         }
         // search
+        typedef std::chrono::time_point<std::chrono::steady_clock> TimeType;
+        TimeType start = std::chrono::steady_clock::now();
         if (op == "BFS") {
             std::cout << op << ' ';
             bfs(test);
@@ -181,6 +191,9 @@ int main(int argc, char *argv[]) {
         else {
             DIE("unknown search strategy \"%s\"\n", op.c_str());
         }
+        TimeType end = std::chrono::steady_clock::now();
+        std::chrono::duration<double> diff = end - start;
+        std::cout << "Time used: " << diff.count() << std::endl;
     }
     f.close();
     return 0;
