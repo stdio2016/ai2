@@ -46,6 +46,21 @@ struct RunState {
             prev = s;
         }
     }
+    void showPathReverse(const TestData &t) {
+        RunState *prev = this;
+        int i = 0;
+        while (prev->parent != NULL) {
+            RunState *s = prev->parent;
+            if (s->x > prev->x) std::cout << "(x+) ";
+            else if (s->y > prev->y) std::cout << "(y+) ";
+            else if (s->x < prev->x) std::cout << "(x-) ";
+            else if (s->y < prev->y) std::cout << "(y-) ";
+            else std::cout << "(S)  ";
+            std::cout << t.steps[i] << "  (" << s->x << ',' << s->y << ')' << std::endl;
+            prev = prev->parent;
+            i++;
+        }
+    }
 };
 
 // search algorithms
@@ -53,7 +68,7 @@ void bfs(const TestData &test) {
     test.show();
     std::vector<RunState*> state;
     int i;
-    int n = test.steps.size();
+    const int n = test.steps.size();
     size_t now = 0;
     state.push_back(new RunState(0,0,NULL)); // initial state
     for (i = 0; i <= n; i++) {
@@ -80,6 +95,47 @@ void bfs(const TestData &test) {
     }
     for (RunState *i : state) { // clean up
         delete i;
+    }
+}
+
+static RunState *idsHelper(const TestData &test, int depth, int x, int y, int i) {
+    if (depth == i) { // maximum depth reached
+        if (x == test.x && y == test.y) { // get target
+            return new RunState(x,y,NULL);
+        }
+        else return NULL;
+    }
+    int k = test.steps[i];
+    RunState *s;
+    // if condition is true, it means we found a solution
+    if (s = idsHelper(test, depth, x+k, y, i+1)) return new RunState(x,y,s); //(x+)
+    if (s = idsHelper(test, depth, x, y+k, i+1)) return new RunState(x,y,s); //(y+)
+    if (s = idsHelper(test, depth, x-k, y, i+1)) return new RunState(x,y,s); //(x-)
+    if (s = idsHelper(test, depth, x, y-k, i+1)) return new RunState(x,y,s); //(y-)
+    if (s = idsHelper(test, depth, x, y, i+1)) return new RunState(x,y,s); //(S)
+    return NULL; // no solution
+}
+
+void ids(const TestData &test) {
+    test.show();
+    const int n = test.steps.size();
+    int i;
+    RunState *s = NULL;
+    for (i = 0; i <= n; i++) {
+        s = idsHelper(test, i, 0, 0, 0);
+        if (s != NULL) break; // solution found
+    }
+    if (s != NULL) {
+        std::cout << "Steps: " << i << std::endl;
+        s->showPathReverse(test);
+    }
+    else {
+        std::cout << "No solution" << std::endl;
+    }
+    while (s != NULL) { // cleanup
+        RunState *p = s;
+        s = s->parent;
+        delete p;
     }
 }
 
@@ -117,6 +173,7 @@ int main(int argc, char *argv[]) {
         }
         else if (op == "IDS") {
             std::cout << op << ' ';
+            ids(test);
         }
         else if (op == "A*") {
             std::cout << op << ' ';
