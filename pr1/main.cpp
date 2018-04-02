@@ -4,6 +4,7 @@
 #include <queue>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -34,6 +35,13 @@ struct BfsNode {
     int prev;
     BfsNode() {}
     BfsNode(int x, int y, int prev): pos(x,y), prev(prev) {}
+    bool operator<(const BfsNode &b) const {
+        if (prev < b.prev) return true;
+        if (prev > b.prev) return false;
+        if (pos.x < b.pos.x) return true;
+        if (pos.x > b.pos.x) return false;
+        return pos.y < b.pos.y;
+    }
 };
 
 void showPath(const std::vector<Point> &path, const TestData &t) {
@@ -145,7 +153,81 @@ void ids(const TestData &test) {
     }
 }
 
+struct AstarNode: public BfsNode {
+    int f; // f = g + h, h = heuristic function
+    Point prevpos;
+    AstarNode() {}
+    AstarNode(int x, int y, int g, Point prevpos): BfsNode(x,y,g), prevpos(prevpos) {}
+    bool operator>(const AstarNode &b) const {
+        return f > b.f;
+    }
+};
+
+class TeacherHeuristic {
+public:
+    int operator() (const TestData &test, const AstarNode &n) {
+        int dx = abs(test.x - n.pos.x);
+        int dy = abs(test.y - n.pos.y);
+        return dx / 9 + dy / 9;
+    }
+};
+
+template <class Heuristic>
 void astar(const TestData &test) {
+    std::priority_queue<AstarNode, std::vector<AstarNode>, std::greater<AstarNode> > pq;
+    std::map<BfsNode, BfsNode> state; // now -> prev, also used to check repeated state
+    Heuristic h;
+    AstarNode now;
+    int reachCount = 1;
+    pq.push(AstarNode(0,0,0,Point()));
+    int total = test.steps.size();
+    while (!pq.empty()) {
+        now = pq.top();
+        const int x = now.pos.x, y = now.pos.y, n = now.prev;
+        auto dup = state.find(now); // check repeated state
+        if (dup != state.end()) {
+            pq.pop();
+            continue;
+        }
+        state[now] = BfsNode(now.prevpos.x, now.prevpos.y, n-1);
+        if (now.pos.x == test.x && now.pos.y == test.y) break; // goal
+        pq.pop();
+        if (n < total) { // has next
+            const int k = test.steps[n];
+            AstarNode next;
+            next = AstarNode(x+k,y,n+1,now.pos); // (x+)
+            next.f = n+1 + h(test, next);
+            pq.push(next);
+            next = AstarNode(x,y+k,n+1,now.pos); // (y+)
+            next.f = n+1 + h(test, next);
+            pq.push(next);
+            next = AstarNode(x-k,y,n+1,now.pos); // (x-)
+            next.f = n+1 + h(test, next);
+            pq.push(next);
+            next = AstarNode(x,y-k,n+1,now.pos); // (y-)
+            next.f = n+1 + h(test, next);
+            pq.push(next);
+            next = AstarNode(x,y,n+1,now.pos); // (S)
+            next.f = n+1 + h(test, next);
+            pq.push(next);
+            reachCount += 5;
+        }
+    }
+    if (!pq.empty()) {
+        int n = now.prev;
+        std::cout << "Steps: " << n << std::endl;
+        std::vector<Point> path(n+1);
+        BfsNode t = now;
+        for (int i = n; i>=0; i--) {
+            path[i] = t.pos;
+            t = state[t];
+        }
+        showPath(path, test);
+    }
+    else {
+        std::cout << "No solution" << std::endl;
+    }
+    std::cout << "Reached node count: " << reachCount << std::endl;
 }
 
 // start here
@@ -180,17 +262,22 @@ int main(int argc, char *argv[]) {
         TimeType start = std::chrono::steady_clock::now();
         std::cout << op << ' ';
         test.show();
-        if (op == "BFS") {
-            bfs(test);
+        try {
+            if (op == "BFS") {
+                bfs(test);
+            }
+            else if (op == "IDS") {
+                ids(test);
+            }
+            else if (op == "A*") {
+                astar<TeacherHeuristic>(test);
+            }
+            else {
+                std::cout << "unknown search strategy \"" << op << "\"" << std::endl;
+            }
         }
-        else if (op == "IDS") {
-            ids(test);
-        }
-        else if (op == "A*") {
-            astar(test);
-        }
-        else {
-            std::cout << "unknown search strategy \"" << op << "\"" << std::endl;
+        catch (std::bad_alloc dd) {
+            std::cout << "Out of memory" << std::endl;
         }
         TimeType end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = end - start;
