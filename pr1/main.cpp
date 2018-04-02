@@ -88,7 +88,7 @@ void bfs(const TestData &test) {
         path[0] = Point(0,0);
         while (i > 0) {
             path[i] = state[now].pos;
-            now = state[now].prev;
+            now = state[now].prev; // back trace
             i--;
         }
         showPath(path, test);
@@ -132,7 +132,7 @@ void bfs_dedup(const TestData &test) {
         path[0] = Point(0,0);
         while (i > 0) {
             path[i] = state[now].pos;
-            now = state[now].prev;
+            now = state[now].prev; // back trace
             i--;
         }
         showPath(path, test);
@@ -199,7 +199,7 @@ void ids(const TestData &test) {
 }
 
 struct AstarNode: public BfsNode {
-    int f; // f = g + h, h = heuristic function
+    int f; // f = g + h, h = heuristic function, g = cost
     Point prevpos;
     AstarNode() {}
     AstarNode(int x, int y, int g, Point prevpos): BfsNode(x,y,g), prevpos(prevpos) {}
@@ -208,6 +208,9 @@ struct AstarNode: public BfsNode {
     }
 };
 
+// heuristic functions
+// first argument: environment
+// second argument: next state
 class TeacherHeuristic {
 public:
     int operator() (const TestData &test, const AstarNode &n) {
@@ -217,8 +220,23 @@ public:
     }
 };
 
+struct BadHeuristic {
+    int operator() (const TestData &test, const AstarNode &n) {
+        return 0;
+    }
+};
+
+struct MyHeuristic {
+    int operator() (const TestData &test, const AstarNode &n) {
+        int dx = abs(test.x - n.pos.x);
+        int dy = abs(test.y - n.pos.y);
+        return (dx+8) / 9 + (dy+8) / 9;
+    }
+};
+
 template <class Heuristic>
 void astar(const TestData &test) {
+    // minimum heap
     std::priority_queue<AstarNode, std::vector<AstarNode>, std::greater<AstarNode> > pq;
     std::map<BfsNode, BfsNode> state; // now -> prev, also used to check repeated state
     Heuristic h;
@@ -265,7 +283,7 @@ void astar(const TestData &test) {
         BfsNode t = now;
         for (int i = n; i>=0; i--) {
             path[i] = t.pos;
-            t = state[t];
+            t = state[t]; // back trace
         }
         showPath(path, test);
     }
@@ -317,6 +335,12 @@ int main(int argc, char *argv[]) {
             else if (op == "A*") {
                 astar<TeacherHeuristic>(test);
             }
+            else if (op == "A*BAD") {
+                astar<BadHeuristic>(test);
+            }
+            else if (op == "A*2") {
+                astar<MyHeuristic>(test);
+            }
             else if (op == "BFSD") {
                 bfs_dedup(test);
             }
@@ -329,7 +353,7 @@ int main(int argc, char *argv[]) {
         }
         TimeType end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = end - start;
-        std::cout << "Time used: " << diff.count() << " seconds" << std::endl;
+        std::cout << "Time used: " << diff.count() << " seconds" << std::endl << std::endl;
     }
     f.close();
     return 0;
