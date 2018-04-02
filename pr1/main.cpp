@@ -64,42 +64,77 @@ struct RunState {
     }
 };
 
+struct AStarRunState : public RunState {
+    int f; // evaluation function value = g + h
+    int g; // actual cost = step count
+};
+
 // search algorithms
+struct Point {
+    int x,y;
+    Point() {}
+    Point(int x, int y): x(x), y(y) {}
+};
+
+struct BfsNode {
+    Point pos;
+    int prev;
+    BfsNode() {}
+    BfsNode(int x, int y, int prev): pos(x,y), prev(prev) {}
+};
+
+void showPath(const std::vector<Point> &path, const TestData &t) {
+    std::cout << "initial (0,0)" << std::endl;
+    for (size_t i = 1; i < path.size(); i++) {
+        Point now = path[i];
+        Point prev = path[i-1];
+        if (now.x > prev.x) std::cout << "(x+) ";
+        else if (now.y > prev.y) std::cout << "(y+) ";
+        else if (now.x < prev.x) std::cout << "(x-) ";
+        else if (now.y < prev.y) std::cout << "(y-) ";
+        else std::cout << "(S)  ";
+        std::cout << t.steps[i-1] << "  (" << now.x << ',' << now.y << ')' << std::endl;
+    }
+}
+
 void bfs(const TestData &test) {
-    test.show();
-    std::vector<RunState*> state;
+    std::vector<BfsNode> state;
     int i;
     const int n = test.steps.size();
     size_t now = 0;
-    state.push_back(new RunState(0,0,NULL)); // initial state
+    state.emplace_back(0,0,0); // initial state
     for (i = 0; i <= n; i++) {
         const size_t end = state.size();
         const int step = i == n ? 0 : test.steps[i];
         for (now = now; now < end; now++) {
-            RunState *st = state[now];
-            if (st->x == test.x && st->y == test.y) break;
+            BfsNode st = state[now];
+            const int x = st.pos.x, y = st.pos.y;
+            if (x == test.x && y == test.y) break;
             if (i < n) {
-                const int x = st->x, y = st->y;
-                state.push_back(new RunState(x+step, y, st)); // (x+)
-                state.push_back(new RunState(x, y+step, st)); // (y+)
-                state.push_back(new RunState(x-step, y, st)); // (x-)
-                state.push_back(new RunState(x, y-step, st)); // (y-)
-                state.push_back(new RunState(x, y, st)); // (S)
+                state.emplace_back(x+step, y, now); // (x+)
+                state.emplace_back(x, y+step, now); // (y+)
+                state.emplace_back(x-step, y, now); // (x-)
+                state.emplace_back(x, y-step, now); // (y-)
+                state.emplace_back(x, y, now); // (S)
             }
         }
         if (now < end) break;
     }
-    if (i <= n) {
+    if (i <= n) { // show path
         std::cout << "Steps: " << i << std::endl;
-        state[now]->showPath(test);
+        std::vector<Point> path(i+1);
+        path[0] = Point(0,0);
+        while (i > 0) {
+            path[i] = state[now].pos;
+            now = state[now].prev;
+            i--;
+        }
+        showPath(path, test);
     }
     else {
         std::cout << "No solution" << std::endl;
     }
     std::cout << "Reached node count: " << state.size() << std::endl;
-    for (RunState *i : state) { // clean up
-        delete i;
-    }
 }
 
 static int idsReachedCount;
@@ -123,7 +158,6 @@ static RunState *idsHelper(const TestData &test, int depth, int x, int y, int i)
 }
 
 void ids(const TestData &test) {
-    test.show();
     idsReachedCount = 0;
     const int n = test.steps.size();
     int i;
@@ -145,6 +179,9 @@ void ids(const TestData &test) {
         s = s->parent;
         delete p;
     }
+}
+
+void astar(const TestData &test) {
 }
 
 // start here
@@ -177,23 +214,23 @@ int main(int argc, char *argv[]) {
         // search
         typedef std::chrono::time_point<std::chrono::steady_clock> TimeType;
         TimeType start = std::chrono::steady_clock::now();
+        std::cout << op << ' ';
+        test.show();
         if (op == "BFS") {
-            std::cout << op << ' ';
             bfs(test);
         }
         else if (op == "IDS") {
-            std::cout << op << ' ';
             ids(test);
         }
         else if (op == "A*") {
-            std::cout << op << ' ';
+            astar(test);
         }
         else {
-            DIE("unknown search strategy \"%s\"\n", op.c_str());
+            std::cout << "unknown search strategy \"" << op << "\"" << std::endl;
         }
         TimeType end = std::chrono::steady_clock::now();
         std::chrono::duration<double> diff = end - start;
-        std::cout << "Time used: " << diff.count() << std::endl;
+        std::cout << "Time used: " << diff.count() << " seconds" << std::endl;
     }
     f.close();
     return 0;
