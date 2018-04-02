@@ -22,53 +22,6 @@ struct TestData {
     }
 };
 
-struct RunState {
-    int x, y;
-    RunState *parent;
-    RunState() {}
-    RunState(int x, int y, RunState *prev): x(x), y(y), parent(prev) {}
-    void showPath(const TestData &t) const {
-        std::vector<const RunState *> tmp;
-        const RunState *p = this;
-        while (p != NULL) {
-            tmp.push_back(p);
-            p = p->parent;
-        }
-        std::cout << "initial (0,0)" << std::endl;
-        const RunState *prev = tmp[tmp.size()-1];
-        for (int i = tmp.size()-2; i>=0 ;i--) {
-            const RunState *s = tmp[i];
-            if (s->x > prev->x) std::cout << "(x+) ";
-            else if (s->y > prev->y) std::cout << "(y+) ";
-            else if (s->x < prev->x) std::cout << "(x-) ";
-            else if (s->y < prev->y) std::cout << "(y-) ";
-            else std::cout << "(S)  ";
-            std::cout << t.steps[tmp.size() - i - 2] << "  (" << s->x << ',' << s->y << ')' << std::endl;
-            prev = s;
-        }
-    }
-    void showPathReverse(const TestData &t) {
-        RunState *prev = this;
-        int i = 0;
-        while (prev->parent != NULL) {
-            RunState *s = prev->parent;
-            if (s->x > prev->x) std::cout << "(x+) ";
-            else if (s->y > prev->y) std::cout << "(y+) ";
-            else if (s->x < prev->x) std::cout << "(x-) ";
-            else if (s->y < prev->y) std::cout << "(y-) ";
-            else std::cout << "(S)  ";
-            std::cout << t.steps[i] << "  (" << s->x << ',' << s->y << ')' << std::endl;
-            prev = prev->parent;
-            i++;
-        }
-    }
-};
-
-struct AStarRunState : public RunState {
-    int f; // evaluation function value = g + h
-    int g; // actual cost = step count
-};
-
 // search algorithms
 struct Point {
     int x,y;
@@ -137,23 +90,30 @@ void bfs(const TestData &test) {
     std::cout << "Reached node count: " << state.size() << std::endl;
 }
 
+struct DfsNode { // a linked list
+    Point pos;
+    DfsNode *next; // next step
+    DfsNode() {}
+    DfsNode(int x, int y, DfsNode *next): pos(x, y), next(next) {}
+};
+
 static int idsReachedCount;
-static RunState *idsHelper(const TestData &test, int depth, int x, int y, int i) {
+static DfsNode *idsHelper(const TestData &test, int depth, int x, int y, int i) {
     idsReachedCount++;
     if (depth == i) { // maximum depth reached
         if (x == test.x && y == test.y) { // get target
-            return new RunState(x,y,NULL);
+            return new DfsNode(x,y,NULL);
         }
         else return NULL;
     }
     int k = test.steps[i];
-    RunState *s;
+    DfsNode *s;
     // if condition is true, it means we found a solution
-    if (s = idsHelper(test, depth, x+k, y, i+1)) return new RunState(x,y,s); //(x+)
-    if (s = idsHelper(test, depth, x, y+k, i+1)) return new RunState(x,y,s); //(y+)
-    if (s = idsHelper(test, depth, x-k, y, i+1)) return new RunState(x,y,s); //(x-)
-    if (s = idsHelper(test, depth, x, y-k, i+1)) return new RunState(x,y,s); //(y-)
-    if (s = idsHelper(test, depth, x, y, i+1)) return new RunState(x,y,s); //(S)
+    if (s = idsHelper(test, depth, x+k, y, i+1)) return new DfsNode(x,y,s); //(x+)
+    if (s = idsHelper(test, depth, x, y+k, i+1)) return new DfsNode(x,y,s); //(y+)
+    if (s = idsHelper(test, depth, x-k, y, i+1)) return new DfsNode(x,y,s); //(x-)
+    if (s = idsHelper(test, depth, x, y-k, i+1)) return new DfsNode(x,y,s); //(y-)
+    if (s = idsHelper(test, depth, x, y, i+1)) return new DfsNode(x,y,s); //(S)
     return NULL; // no solution
 }
 
@@ -161,22 +121,26 @@ void ids(const TestData &test) {
     idsReachedCount = 0;
     const int n = test.steps.size();
     int i;
-    RunState *s = NULL;
+    DfsNode *s = NULL;
     for (i = 0; i <= n; i++) {
         s = idsHelper(test, i, 0, 0, 0);
         if (s != NULL) break; // solution found
     }
     if (s != NULL) {
         std::cout << "Steps: " << i << std::endl;
-        s->showPathReverse(test);
+        std::vector<Point> path;
+        for (DfsNode *p = s; p != NULL; p = p->next) {
+            path.push_back(p->pos);
+        }
+        showPath(path, test);
     }
     else {
         std::cout << "No solution" << std::endl;
     }
     std::cout << "Reached node count: " << idsReachedCount << std::endl;
     while (s != NULL) { // cleanup
-        RunState *p = s;
-        s = s->parent;
+        DfsNode *p = s;
+        s = s->next;
         delete p;
     }
 }
