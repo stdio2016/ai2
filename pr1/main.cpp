@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <set>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -98,6 +99,50 @@ void bfs(const TestData &test) {
     std::cout << "Reached node count: " << state.size() << std::endl;
 }
 
+void bfs_dedup(const TestData &test) {
+    std::vector<BfsNode> state;
+    std::set<BfsNode> visited;
+    int i;
+    const int n = test.steps.size();
+    size_t now = 0;
+    state.emplace_back(0,0,0); // initial state
+    for (i = 0; i <= n; i++) {
+        const size_t end = state.size();
+        const int step = i == n ? 0 : test.steps[i];
+        for (now = now; now < end; now++) {
+            BfsNode st = state[now];
+            const int x = st.pos.x, y = st.pos.y;
+            if (x == test.x && y == test.y) break;
+            auto it = visited.find(BfsNode(x, y, i));
+            if (it != visited.end()) continue; // check repeated state
+            visited.insert(BfsNode(x, y, i));
+            if (i < n) {
+                state.emplace_back(x+step, y, now); // (x+)
+                state.emplace_back(x, y+step, now); // (y+)
+                state.emplace_back(x-step, y, now); // (x-)
+                state.emplace_back(x, y-step, now); // (y-)
+                state.emplace_back(x, y, now); // (S)
+            }
+        }
+        if (now < end) break;
+    }
+    if (i <= n) { // show path
+        std::cout << "Steps: " << i << std::endl;
+        std::vector<Point> path(i+1);
+        path[0] = Point(0,0);
+        while (i > 0) {
+            path[i] = state[now].pos;
+            now = state[now].prev;
+            i--;
+        }
+        showPath(path, test);
+    }
+    else {
+        std::cout << "No solution" << std::endl;
+    }
+    std::cout << "Reached node count: " << state.size() << std::endl;
+}
+
 struct DfsNode { // a linked list
     Point pos;
     DfsNode *next; // next step
@@ -117,11 +162,11 @@ static DfsNode *idsHelper(const TestData &test, int depth, int x, int y, int i) 
     int k = test.steps[i];
     DfsNode *s;
     // if condition is true, it means we found a solution
-    if (s = idsHelper(test, depth, x+k, y, i+1)) return new DfsNode(x,y,s); //(x+)
-    if (s = idsHelper(test, depth, x, y+k, i+1)) return new DfsNode(x,y,s); //(y+)
-    if (s = idsHelper(test, depth, x-k, y, i+1)) return new DfsNode(x,y,s); //(x-)
-    if (s = idsHelper(test, depth, x, y-k, i+1)) return new DfsNode(x,y,s); //(y-)
-    if (s = idsHelper(test, depth, x, y, i+1)) return new DfsNode(x,y,s); //(S)
+    if ((s = idsHelper(test, depth, x+k, y, i+1))) return new DfsNode(x,y,s); //(x+)
+    if ((s = idsHelper(test, depth, x, y+k, i+1))) return new DfsNode(x,y,s); //(y+)
+    if ((s = idsHelper(test, depth, x-k, y, i+1))) return new DfsNode(x,y,s); //(x-)
+    if ((s = idsHelper(test, depth, x, y-k, i+1))) return new DfsNode(x,y,s); //(y-)
+    if ((s = idsHelper(test, depth, x, y, i+1))) return new DfsNode(x,y,s); //(S)
     return NULL; // no solution
 }
 
@@ -271,6 +316,9 @@ int main(int argc, char *argv[]) {
             }
             else if (op == "A*") {
                 astar<TeacherHeuristic>(test);
+            }
+            else if (op == "BFSD") {
+                bfs_dedup(test);
             }
             else {
                 std::cout << "unknown search strategy \"" << op << "\"" << std::endl;
