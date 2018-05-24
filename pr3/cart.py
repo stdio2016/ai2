@@ -24,10 +24,10 @@ class CART:
     def predict(self, record):
         if self.classify >= 0:
             return self.classify
-        if record[self.feature] < threshold:
+        if record[self.feature] < self.threshold:
             return self.left.predict(record)
         else:
-            return self.right.pridict(record)
+            return self.right.predict(record)
 
 def trainCART(data, features, numClasses):
     n = len(data)
@@ -69,9 +69,9 @@ def trainCART(data, features, numClasses):
     if featureToUse == None:
         m = 0
         choose = 0
-        for c in range(len(classCount)):
+        for c in range(numClasses):
             if classCount[c] > m:
-                m = classCount
+                m = classCount[c]
                 choose = c
         return CART().leaf(choose)
     # split data

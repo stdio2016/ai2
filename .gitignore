@@ -3,3 +3,5 @@
 
 *.layout
 *.depend
+pr2
+*.pyc
