@@ -29,7 +29,7 @@ class CART:
         else:
             return self.right.predict(record)
 
-def trainCART(data, features, numClasses):
+def trainCART(data, features, numClasses, minSize = 1):
     n = len(data)
     minGini = n + 1
     featureToUse = None
@@ -66,7 +66,7 @@ def trainCART(data, features, numClasses):
                 featureToUse = f
                 threshold = (prev + current) / 2.0
     # no way to split
-    if featureToUse == None:
+    if featureToUse == None or len(data) < minSize:
         m = 0
         choose = 0
         for c in range(numClasses):
@@ -82,8 +82,8 @@ def trainCART(data, features, numClasses):
             left.append(rec)
         else:
             right.append(rec)
-    leftTree = trainCART(left, features, numClasses)
-    rightTree = trainCART(right, features, numClasses)
+    leftTree = trainCART(left, features, numClasses, minSize)
+    rightTree = trainCART(right, features, numClasses, minSize)
     return CART().branch(leftTree, rightTree, featureToUse, threshold)
 
 def computeGini(count, size):
