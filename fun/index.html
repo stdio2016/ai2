@@ -97,11 +97,11 @@ function updateBoard() {
     for (var j = 0; j < 8; j++) {
       var img = tblBoard.rows[i].cells[j].children[0];
       if (board[i*8+j] === FIRST_PLAYER) {
-        img.src = "black.svg";
+        img.src = "black.png";
         first++;
       }
       else if (board[i*8+j] === SECOND_PLAYER) {
-        img.src = "white.svg";
+        img.src = "white.png";
         second++;
       }
     }
