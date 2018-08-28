@@ -27,17 +27,24 @@
 <p>This game looks like reversi, but has subtle differences</p>
 <script>
 if (!window.console) console = {log: Math.log};
+if (!Date.now) {
+  Date.now = function now() {
+    return +new Date();
+  };
+}
 var FIRST_PLAYER = 1, SECOND_PLAYER = 2;
 var who = FIRST_PLAYER;
-var board = [];
+var board = new Int8Array(64);
 function clickCell(i,j) {
   return function clickCellClosure(event) {
+    if (who !== FIRST_PLAYER) return ;
     var cell = tblBoard.rows[i].cells[j];
-    if (board[i][j] === 0) {
-      board[i][j] = who;
+    if (board[i*8+j] === 0) {
+      board[i*8+j] = who;
       reversi(i, j, who);
       who = 3 - who;
       updateBoard();
+      aiMove();
     }
   };
 }
@@ -47,13 +54,13 @@ function reversiDirection(i, j, di, dj, who) {
   var y = i, x = j;
   y += di;
   x += dj;
-  while (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y][x] === opponent) {
+  while (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y*8+x] === opponent) {
     y += di;
     x += dj;
   }
-  if (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y][x] === who) {
+  if (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y*8+x] === who) {
     while (y !== i || x !== j) {
-      board[y][x] = who;
+      board[y*8+x] = who;
       y -= di;
       x -= dj;
     }
@@ -81,8 +88,8 @@ for (var i = 0; i < 8; i++) {
     if ((i+j)&1) c.className = "odd-cell";
     else c.className = "even-cell";
     c.onclick = clickCell(i,j);
+    board[i*8+j] = 0;
   }
-  board.push(Array(8).fill(0))
 }
 
 function updateBoard() {
@@ -90,11 +97,11 @@ function updateBoard() {
   for (var i = 0; i < 8; i++) {
     for (var j = 0; j < 8; j++) {
       var img = tblBoard.rows[i].cells[j].children[0];
-      if (board[i][j] === FIRST_PLAYER) {
+      if (board[i*8+j] === FIRST_PLAYER) {
         img.src = "black.svg";
         first++;
       }
-      else if (board[i][j] === SECOND_PLAYER) {
+      else if (board[i*8+j] === SECOND_PLAYER) {
         img.src = "white.svg";
         second++;
       }
@@ -102,6 +109,53 @@ function updateBoard() {
   }
   tblScore.rows[1].cells[0].innerHTML = first;
   tblScore.rows[1].cells[1].innerHTML = second;
+}
+
+var mcts;
+var timeLimit;
+var iterations = 0;
+function aiMove() {
+  mcts = new Mcts(board, SECOND_PLAYER);
+  timeLimit = Date.now() + 5000;
+  iterations = 0;
+  setTimeout(aiLoop, 4);
+}
+
+function aiLoop() {
+  for (var i = 0; i < 1000; i++) {
+    var select = mcts.select();
+    var child = select.expand();
+    if (child) {
+      var guess = child.simulate();
+      child.propagate(guess);
+    }
+  }
+  console.log("iteration " + iterations*1000);
+  iterations++;
+  if (Date.now() < timeLimit) {
+    setTimeout(aiLoop, 4);
+  }
+  else {
+    aiFinish();
+  }
+}
+    
+function aiFinish() {
+  var good = mcts.children[0];
+  var uct = good.UCT();
+  for (var i = 1; i < mcts.children.length; i++) {
+    var u = mcts.children[i].UCT();
+    if (u > uct) {
+      uct = u;
+      good = mcts.children[i];
+    }
+  }
+  var move = good.move;
+  console.log(move);
+  board[move] = who;
+  reversi(move>>3, move&7, who);
+  who = 3 - who;
+  updateBoard();
 }
 </script>
 </body>
