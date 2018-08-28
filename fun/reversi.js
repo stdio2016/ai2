@@ -1,5 +1,9 @@
 window.Int8Array = window.Int8Array || Array;
-
+Int8Array.prototype.set = Int8Array.prototype.set || function (e) {
+  for (var i = 0; i < e.length; i++) {
+    this[i] = e[i];
+  }
+};
 
 function getNextMoves(state, player) {
   var action = [];

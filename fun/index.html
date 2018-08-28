@@ -12,7 +12,7 @@
 <h1>AI for fun!</h1>
 <table id="tblBoard">
 </table>
-<p>
+<p></p>
 <table border="1" id="tblScore">
   <tr>
     <th style="width:50%;">Player</th>
@@ -23,7 +23,6 @@
     <td>0</td>
   </tr>
 </table>
-</p>
 <p>This game looks like reversi, but has subtle differences</p>
 <script>
 if (!window.console) console = {log: Math.log};
@@ -118,7 +117,7 @@ function aiMove() {
   mcts = new Mcts(board, SECOND_PLAYER);
   timeLimit = Date.now() + 5000;
   iterations = 0;
-  setTimeout(aiLoop, 4);
+  setTimeout(aiLoop, 100);
 }
 
 function aiLoop() {
