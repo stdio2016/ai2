@@ -13,9 +13,10 @@ Mcts.prototype.UCT = function () {
   while (root.parent) {
     root = root.parent;
   }
+  if (this.tried === 0) return 10000;
   return +
-    this.win / (this.tried+1) +
-    Math.sqrt(2 * Math.log(root.tried) / (this.tried+1));
+    this.win / this.tried +
+    Math.sqrt(2 * Math.log(root.tried) / this.tried);
 };
 
 Mcts.prototype.select = function () {
@@ -68,7 +69,7 @@ Mcts.prototype.simulate = function () {
 Mcts.prototype.propagate = function (player) {
   var node = this;
   while (node) {
-    if (node.player === player) {
+    if (node.player !== player) {
       node.win++;
     }
     node.tried++;

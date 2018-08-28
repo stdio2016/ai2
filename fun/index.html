@@ -39,10 +39,7 @@ function clickCell(i,j) {
     if (who !== FIRST_PLAYER) return ;
     var cell = tblBoard.rows[i].cells[j];
     if (board[i*8+j] === 0) {
-      board[i*8+j] = who;
-      reversi(i, j, who);
-      who = 3 - who;
-      updateBoard();
+      reversi(i, j);
       aiMove();
     }
   };
@@ -66,7 +63,8 @@ function reversiDirection(i, j, di, dj, who) {
   }
 }
 
-function reversi(i, j, who) {
+function reversi(i, j) {
+  board[i*8+j] = who;
   reversiDirection(i, j, 1, 1, who);
   reversiDirection(i, j, 1, -1, who);
   reversiDirection(i, j, -1, 1, who);
@@ -75,6 +73,8 @@ function reversi(i, j, who) {
   reversiDirection(i, j, -1, 0, who);
   reversiDirection(i, j, 0, 1, who);
   reversiDirection(i, j, 0, -1, who);
+  who = 3 - who;
+  updateBoard();
 }
 
 var tblBoard = document.getElementById('tblBoard');
@@ -114,7 +114,7 @@ var mcts;
 var timeLimit;
 var iterations = 0;
 function aiMove() {
-  mcts = new Mcts(board, SECOND_PLAYER);
+  mcts = new Mcts(board, who);
   timeLimit = Date.now() + 5000;
   iterations = 0;
   setTimeout(aiLoop, 100);
@@ -151,10 +151,13 @@ function aiFinish() {
   }
   var move = good.move;
   console.log(move);
-  board[move] = who;
-  reversi(move>>3, move&7, who);
-  who = 3 - who;
-  updateBoard();
+  reversi(move>>3, move&7);
+}
+
+function randomMove() {
+  var a = getNextMoves(board);
+  var r = (Math.random() * a.length) | 0;
+  reversi(a[r]>>3, a[r]&7);
 }
 </script>
 </body>
