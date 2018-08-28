@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+<title>AI for fun</title>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<h1>AI for fun!</h1>
+<table id="tblBoard">
+</table>
+<script>
+if (!window.console) console = {log: Math.log};
+var FIRST_PLAYER = 1, SECOND_PLAYER = 2;
+var who = FIRST_PLAYER;
+var board = [];
+function clickCell(i,j) {
+  return function clickCellClosure(event) {
+    var cell = tblBoard.rows[i].cells[j];
+    if (board[i][j] === 0) {
+      board[i][j] = who;
+      var img = new Image(25, 25);
+      img.src = who===FIRST_PLAYER ? "black.svg" : "white.svg";
+      event.target.appendChild(img);
+      reversi(i, j, who);
+      who = 3 - who;
+    }
+  };
+}
+
+function reversiDirection(i, j, di, dj, who) {
+  var opponent = 3 - who;
+  var y = i, x = j;
+  y += di;
+  x += dj;
+  while (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y][x] === opponent) {
+    y += di;
+    x += dj;
+  }
+  if (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y][x] === who) {
+    while (y !== i || x !== j) {
+      var img = who===FIRST_PLAYER ? "black.svg" : "white.svg";
+      board[y][x] = who;
+      tblBoard.rows[y].cells[x].children[0].src = img;
+      y -= di;
+      x -= dj;
+    }
+  }
+}
+
+function reversi(i, j, who) {
+  reversiDirection(i, j, 1, 1, who);
+  reversiDirection(i, j, 1, -1, who);
+  reversiDirection(i, j, -1, 1, who);
+  reversiDirection(i, j, -1, -1, who);
+  reversiDirection(i, j, 1, 0, who);
+  reversiDirection(i, j, -1, 0, who);
+  reversiDirection(i, j, 0, 1, who);
+  reversiDirection(i, j, 0, -1, who);
+}
+
+var tblBoard = document.getElementById('tblBoard');
+for (var i = 0; i < 8; i++) {
+  var r = tblBoard.insertRow();
+  for (var j = 0; j < 8; j++) {
+    var c = r.insertCell();
+    if ((i+j)&1) c.className = "odd-cell";
+    else c.className = "even-cell";
+    c.onclick = clickCell(i,j);
+  }
+  board.push(Array(8).fill(0))
+}
+</script>
+</body>
+</html>

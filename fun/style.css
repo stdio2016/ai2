@@ -1,0 +1,23 @@
+#tblBoard {
+  padding: 0;
+  border-collapse: collapse;
+  height: 256px;
+  width: 256px;
+}
+#tblBoard td {
+  height: 12%;
+  width: 12%;
+  border: 0px;
+  padding: 0;
+  text-align: center;
+}
+#tblBoard img {
+  vertical-align: middle;
+}
+
+.even-cell {
+  background-color: #dd3300;
+}
+.odd-cell {
+  background-color: #ddcc00;
+}
