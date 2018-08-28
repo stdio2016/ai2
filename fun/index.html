@@ -5,11 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 <title>AI for fun</title>
 <link rel="stylesheet" type="text/css" href="style.css">
+<script src="mcts.js" charset="utf-8"></script>
+<script src="reversi.js" charset="utf-8"></script>
 </head>
 <body>
 <h1>AI for fun!</h1>
 <table id="tblBoard">
 </table>
+<p>
+<table border="1" id="tblScore">
+  <tr>
+    <th style="width:50%;">Player</th>
+    <th>AI</th>
+  </tr>
+  <tr style="text-align:center;">
+    <td>0</td>
+    <td>0</td>
+  </tr>
+</table>
+</p>
+<p>This game looks like reversi, but has subtle differences</p>
 <script>
 if (!window.console) console = {log: Math.log};
 var FIRST_PLAYER = 1, SECOND_PLAYER = 2;
@@ -20,11 +35,9 @@ function clickCell(i,j) {
     var cell = tblBoard.rows[i].cells[j];
     if (board[i][j] === 0) {
       board[i][j] = who;
-      var img = new Image(25, 25);
-      img.src = who===FIRST_PLAYER ? "black.svg" : "white.svg";
-      event.target.appendChild(img);
       reversi(i, j, who);
       who = 3 - who;
+      updateBoard();
     }
   };
 }
@@ -40,9 +53,7 @@ function reversiDirection(i, j, di, dj, who) {
   }
   if (y >= 0 && y < 8 && x >= 0 && x < 8 && board[y][x] === who) {
     while (y !== i || x !== j) {
-      var img = who===FIRST_PLAYER ? "black.svg" : "white.svg";
       board[y][x] = who;
-      tblBoard.rows[y].cells[x].children[0].src = img;
       y -= di;
       x -= dj;
     }
@@ -61,15 +72,36 @@ function reversi(i, j, who) {
 }
 
 var tblBoard = document.getElementById('tblBoard');
+var tblScore = document.getElementById('tblScore');
 for (var i = 0; i < 8; i++) {
   var r = tblBoard.insertRow();
   for (var j = 0; j < 8; j++) {
     var c = r.insertCell();
+    c.innerHTML = "<img>";
     if ((i+j)&1) c.className = "odd-cell";
     else c.className = "even-cell";
     c.onclick = clickCell(i,j);
   }
   board.push(Array(8).fill(0))
+}
+
+function updateBoard() {
+  var first = 0, second = 0;
+  for (var i = 0; i < 8; i++) {
+    for (var j = 0; j < 8; j++) {
+      var img = tblBoard.rows[i].cells[j].children[0];
+      if (board[i][j] === FIRST_PLAYER) {
+        img.src = "black.svg";
+        first++;
+      }
+      else if (board[i][j] === SECOND_PLAYER) {
+        img.src = "white.svg";
+        second++;
+      }
+    }
+  }
+  tblScore.rows[1].cells[0].innerHTML = first;
+  tblScore.rows[1].cells[1].innerHTML = second;
 }
 </script>
 </body>
